@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Farm Advisor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--mist:#e8efe9;--ink:#14261d;--mute:#5f7266;--leaf:#1f6b4a;--leaf-d:#16523a;--maize:#f0c43f;--line:#cfdcd2;--red:#c8372d}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--mist);color:var(--ink);font:16px/1.5 "Instrument Sans",system-ui,sans-serif;display:flex;justify-content:center}
+.app{width:100%;max-width:760px;height:100dvh;display:flex;flex-direction:column;padding:0 16px}
+header{display:flex;align-items:center;gap:12px;padding:18px 0 12px}
+h1{font:700 1.5rem/1.1 "Bricolage Grotesque",system-ui,sans-serif;margin:0;flex:1;letter-spacing:-.01em}
+h1 small{display:block;font:400 .85rem "Instrument Sans",sans-serif;color:var(--mute);margin-top:4px;letter-spacing:0}
+select,.ghost{font:inherit;font-size:.9rem;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.ghost{cursor:pointer}
+#chat{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:8px 2px 16px}
+.msg{max-width:86%;padding:11px 15px;border-radius:18px;word-wrap:break-word}
+.msg.user{align-self:flex-end;background:var(--leaf);color:#fff;border-bottom-right-radius:6px}
+.msg.bot{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:6px}
+.msg.err{border-color:var(--red);color:var(--red)}
+.msg.hint{background:transparent;border:1px dashed var(--line);color:var(--mute);max-width:100%}
+.att{display:block;max-width:220px;max-height:160px;border-radius:10px;margin-bottom:8px;object-fit:cover}
+.voice small,.meta span{display:inline-block;background:rgba(0,0,0,.08);border-radius:6px;padding:0 7px;margin-left:6px;font-size:.78rem}
+.meta{margin-top:8px;font-size:.78rem;color:var(--mute)}
+.meta span{background:var(--mist);margin:0 6px 0 0}
+.dots i{display:inline-block;width:7px;height:7px;margin-right:4px;border-radius:50%;background:var(--mute);animation:b 1s infinite}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,80%,100%{opacity:.25}40%{opacity:1}}
+footer{padding:10px 0 16px}
+#tray{display:flex;gap:8px;margin-bottom:8px}
+.thumb{position:relative}.thumb img{width:56px;height:56px;border-radius:10px;object-fit:cover;display:block}
+.thumb button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;background:var(--ink);color:#fff;cursor:pointer;line-height:1}
+.bar{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 6px 6px 8px}
+.bar:focus-within{border-color:var(--leaf)}
+#text{flex:1;border:0;outline:0;font:inherit;background:transparent;padding:8px 6px;min-width:0}
+.icon{width:42px;height:42px;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;background:transparent;color:var(--leaf);flex:none}
+.icon:hover{background:var(--mist)}
+#mic{width:52px;height:52px;background:var(--maize);color:var(--ink)}
+#mic:hover{background:#e7b92e}
+#mic.on{background:var(--red);color:#fff;animation:p 1.1s infinite}
+@keyframes p{0%{box-shadow:0 0 0 0 rgba(200,55,45,.5)}100%{box-shadow:0 0 0 14px rgba(200,55,45,0)}}
+#go{background:var(--leaf);color:#fff}#go:hover{background:var(--leaf-d)}
+button:disabled{opacity:.5;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--maize);outline-offset:2px}
+svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Farm Advisor<small>Ask by voice, text or photo</small></h1>
+    <select id="lang" aria-label="Spoken language">
+      <option value="auto">Detect language</option>
+      <option value="en">Nigerian English</option>
+      <option value="yo">Yoruba</option>
+      <option value="ha">Hausa</option>
+    </select>
+    <button class="ghost" id="reset">New chat</button>
+  </header>
+
+  <main id="chat" aria-live="polite"></main>
+
+  <footer>
+    <div id="tray" hidden></div>
+    <div class="bar">
+      <label class="icon" title="Attach a photo" tabindex="0">
+        <svg viewBox="0 0 24 24"><path d="M21 12.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l9-9a3.7 3.7 0 015.2 5.2l-9 9a1.8 1.8 0 01-2.6-2.6l8.4-8.4"/></svg>
+        <input id="file" type="file" accept="image/*" multiple hidden>
+      </label>
+      <input id="text" type="text" placeholder="Type your question" autocomplete="off">
+      <button class="icon" id="mic" title="Tap to speak, tap again to send" aria-label="Record voice">
+        <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>
+      </button>
+      <button class="icon" id="go" title="Send" aria-label="Send">
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </footer>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const chat = $('#chat'), textEl = $('#text'), tray = $('#tray');
+const sid = sessionStorage.sid || (sessionStorage.sid = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '' + Math.random()));
+let images = [], rec = null, timer = null, busy = false;
+
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const md = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/^\s*[-*]\s+/gm, '• ').replace(/\n/g, '<br>');
+const headers = () => ({'X-Access-Code': sessionStorage.code || ''});
+const post = fd => fetch('/api/chat', {method: 'POST', body: fd, headers: headers()});
+
+function add(cls, html) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + cls; d.innerHTML = html;
+  chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
+  return d;
+}
+function welcome() {
+  add('hint', 'Ask about crops, livestock, pests or soil. Type, tap the yellow mic and speak in English, Yoruba or Hausa, or attach a photo of the problem.');
+}
+function setBusy(b) { busy = b; $('#go').disabled = b; $('#mic').disabled = b && !rec; }
+function renderTray() {
+  tray.innerHTML = '';
+  images.forEach((f, i) => {
+    const w = document.createElement('div'); w.className = 'thumb';
+    w.innerHTML = `<img src="${URL.createObjectURL(f)}" alt=""><button data-i="${i}" aria-label="Remove photo">×</button>`;
+    tray.appendChild(w);
+  });
+  tray.hidden = !images.length;
+}
+tray.onclick = e => { const i = e.target.dataset.i; if (i !== undefined) { images.splice(+i, 1); renderTray(); } };
+$('#file').onchange = e => { images.push(...e.target.files); images = images.slice(0, 3); e.target.value = ''; renderTray(); };
+
+const meta = t => ['detect', 'asr', 'llm', 'total'].filter(k => t[k] != null)
+  .map(k => `<span>${{detect: 'Language', asr: 'Speech', llm: 'Claude', total: 'Total'}[k]} ${t[k]}s</span>`).join('');
+
+async function send(audio) {
+  if (busy) return;
+  const text = textEl.value.trim();
+  if (!text && !audio && !images.length) return;
+  setBusy(true);
+  const imgs = images.slice();
+  const thumbs = imgs.map(f => `<img class="att" src="${URL.createObjectURL(f)}" alt="">`).join('');
+  const u = add('user', thumbs + (audio ? '<div class="voice">Transcribing…</div>' : '') + (text ? `<div>${esc(text)}</div>` : ''));
+  const wait = add('bot', '<span class="dots"><i></i><i></i><i></i></span>');
+
+  const fd = new FormData();
+  fd.append('session_id', sid); fd.append('language', $('#lang').value); fd.append('text', text);
+  if (audio) fd.append('audio', audio, 'voice.' + (audio.type.includes('mp4') ? 'm4a' : 'webm'));
+  imgs.forEach(f => fd.append('images', f));
+  textEl.value = ''; images = []; renderTray();
+
+  try {
+    let r = await post(fd);
+    if (r.status === 401) { const c = prompt('Enter the access code'); if (c) { sessionStorage.code = c; r = await post(fd); } }
+    const j = await r.json().catch(() => ({error: 'Unexpected server response.'}));
+    if (!r.ok) throw new Error(j.error || 'Request failed.');
+    if (audio) u.querySelector('.voice').innerHTML = esc(j.transcript || '(nothing heard)') +
+      `<small>${esc(j.language_name)}${j.confidence != null ? ' ' + Math.round(j.confidence * 100) + '%' : ''}</small>`;
+    wait.innerHTML = md(j.reply) + `<div class="meta">${meta(j.timings)}</div>`;
+  } catch (e) {
+    wait.className = 'msg bot err'; wait.textContent = e.message;
+    if (audio) u.querySelector('.voice').textContent = 'Voice message';
+  }
+  setBusy(false); chat.scrollTop = chat.scrollHeight;
+}
+
+async function toggleMic() {
+  if (rec) { rec.stop(); return; }
+  if (busy) return;
+  if (!navigator.mediaDevices) { alert('The microphone needs a secure (https) link.'); return; }
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({audio: true}); }
+  catch { alert('Microphone access was blocked. Allow it in your browser settings.'); return; }
+  const chunks = [];
+  rec = new MediaRecorder(stream);
+  rec.ondataavailable = e => chunks.push(e.data);
+  rec.onstop = () => {
+    clearTimeout(timer); stream.getTracks().forEach(t => t.stop());
+    const type = rec.mimeType; rec = null;
+    $('#mic').classList.remove('on'); $('#mic').title = 'Tap to speak, tap again to send';
+    send(new Blob(chunks, {type}));
+  };
+  rec.start();
+  $('#mic').classList.add('on'); $('#mic').title = 'Recording… tap to send';
+  timer = setTimeout(() => rec && rec.stop(), 30000);
+}
+
+$('#mic').onclick = toggleMic;
+$('#go').onclick = () => send();
+textEl.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
+$('#reset').onclick = async () => {
+  await fetch('/api/reset', {method: 'POST', headers: {'Content-Type': 'application/json', ...headers()}, body: JSON.stringify({session_id: sid})});
+  chat.innerHTML = ''; welcome();
+};
+welcome();
+</script>
+</body>
+</html>
